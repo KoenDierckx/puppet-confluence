@@ -9,18 +9,16 @@ class confluence::service (
 ) {
 
   if($refresh_systemd) {
+  # Since Puppet 6.1.0 it's no longer needed to run daemon-reload manually when restarting a service. That means it's possible to drop this code. Since Puppet 4 & 5 are now EOL, this should be ok.
+  # https://github.com/camptocamp/puppet-systemd/pull/171
+  if($refresh_systemd and versioncmp($facts['puppetversion'], '6.1.0') < 0) {
     include systemd::systemctl::daemon_reload
+    File[$service_file_location] ~> Class['systemd::systemctl::daemon_reload']
   }
 
   file { $service_file_location:
     content => template($service_file_template),
     mode    => '0755',
-    notify  => [
-      $refresh_systemd ? {
-        true    => Class['systemd::systemctl::daemon_reload'],
-        default => undef
-      }
-    ],
   }
 
   if $confluence::manage_service {
